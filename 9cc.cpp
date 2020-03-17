@@ -2,25 +2,83 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <iostream>
+#include <istream>
+#include <list>
+#include <sstream>
 #include <string>
 
-enum TokenKind {
+// エラーを報告するための関数
+// printfと同じ引数を取る
+void error(const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+enum class TokenKind {
     TK_RESERVED, // 記号
     TK_NUM,      // 整数トークン
     TK_EOF,      // 入力の終わりを表すトークン
 };
 
 struct Token {
-    TokenKind kind; // トークンの型
-    Token *next;    // 次の入力トークン
-    int val;        // kindがTK_NUMの場合、その数値
-    char *str;      // トークン文字列
-    int len;        // トークンの長さ
+    TokenKind kind;  // トークンの型
+    int val;         // kindがTK_NUMの場合、その数値
+    std::string str; // トークン文字列
 };
 
+bool startswith(const std::string &s, int i, const std::string &t) {
+    return s.substr(i, t.size()) == t;
+}
+
+std::list<Token> tokenize(const std::string &s) {
+    std::list<Token> tokens;
+    size_t i = 0;
+    size_t len = s.size();
+    while (i < len) {
+        if (isspace(s[i])) {
+            i++;
+            continue;
+        }
+
+        // Multi-letter punctuator
+        if (startswith(s, i, "==") || startswith(s, i, "!=") || startswith(s, i, "<=") ||
+            startswith(s, i, ">=")) {
+            tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 2)});
+            i += 2;
+            continue;
+        }
+
+        // Single-letter punctuator
+        if (startswith(s, i, "+") || startswith(s, i, "-") || startswith(s, i, "*") ||
+            startswith(s, i, "/") || startswith(s, i, "(") || startswith(s, i, ")") ||
+            startswith(s, i, "<") || startswith(s, i, ">")) {
+            tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 1)});
+            i++;
+            continue;
+        }
+
+        if (isdigit(s[i])) {
+            size_t j = i;
+            int n = 0;
+            while (isdigit(s[j])) {
+                n = n * 10 + (s[j] - '0');
+                j++;
+            }
+            tokens.push_back(Token{.kind = TokenKind::TK_NUM, .val = n});
+            i = j;
+            continue;
+        }
+    }
+    tokens.push_back(Token{.kind = TokenKind::TK_EOF});
+    return tokens;
+}
+
 // 抽象構文木のノードの種類
-enum NodeKind {
+enum class NodeKind {
     ND_ADD, // +
     ND_SUB, // -
     ND_MUL, // *
@@ -40,121 +98,6 @@ struct Node {
     int val;       // kindがND_NUMの場合のみ使う
 };
 
-// 現在着目しているトークン
-Token *token;
-
-// 入力プログラム
-char *user_input;
-
-void error_at(char *loc, const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-
-    int pos = loc - user_input;
-    fprintf(stderr, "%s\n", user_input);
-    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
-    fprintf(stderr, "^ ");
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
-}
-
-// エラーを報告するための関数
-// printfと同じ引数を取る
-void error(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    fprintf(stderr, "\n");
-    exit(1);
-}
-
-// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(const char *op) {
-    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-        return false;
-    token = token->next;
-    return true;
-}
-
-// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
-// それ以外の場合にはエラーを報告する。
-void expect(const char *op) {
-    if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-        error_at(token->str, "'%c'ではありません", op);
-
-    token = token->next;
-}
-
-// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
-// それ以外の場合にはエラーを報告する
-int expect_number() {
-    if (token->kind != TK_NUM)
-        error_at(token->str, "数ではありません");
-    int val = token->val;
-    token = token->next;
-    return val;
-}
-
-bool at_eof() { return token->kind == TK_EOF; }
-
-// 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
-    Token *tok = static_cast<Token *>(calloc(1, sizeof(Token)));
-    tok->kind = kind;
-    tok->str = str;
-    tok->len = len;
-    cur->next = tok;
-
-    return tok;
-}
-
-bool startswith(const char *p, const char *q) { return memcmp(p, q, strlen(q)) == 0; }
-
-// 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p) {
-    Token head;
-    head.next = nullptr;
-    Token *cur = &head;
-
-    while (*p) {
-        // 空白文字をスキップ
-        if (isspace(*p)) {
-            p++;
-            continue;
-        }
-
-        // Multi-letter punctuator
-        if (startswith(p, "==") || startswith(p, "!=") || startswith(p, "<=") ||
-            startswith(p, ">=")) {
-            cur = new_token(TK_RESERVED, cur, p, 2);
-            p += 2;
-            continue;
-        }
-
-        // single-letter punctuator
-        static const std::string reserved = "+-*/()<>";
-        if (reserved.find(*p) != std::string::npos) {
-            cur = new_token(TK_RESERVED, cur, p++, 1);
-            continue;
-        }
-
-        if (isdigit(*p)) {
-            cur = new_token(TK_NUM, cur, p, 0);
-            cur->val = strtol(p, &p, 10);
-            continue;
-        }
-
-        error_at(p, "トークナイズできません");
-    }
-
-    new_token(TK_EOF, cur, p, 0);
-    return head.next;
-}
-
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
     node->kind = kind;
@@ -165,9 +108,41 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
 
 Node *new_node_num(int val) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
-    node->kind = ND_NUM;
+    node->kind = NodeKind::ND_NUM;
     node->val = val;
     return node;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
+// 真を返す。それ以外の場合には偽を返す。
+bool consume(std::list<Token> &tokens, const std::string &op) {
+    auto token = tokens.front();
+    if (token.kind != TokenKind::TK_RESERVED || token.str != op) {
+        return false;
+    }
+    tokens.pop_front();
+    return true;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
+// それ以外の場合にはエラーを報告する。
+void expect(std::list<Token> &tokens, const std::string &op) {
+    auto token = tokens.front();
+    if (token.kind != TokenKind::TK_RESERVED || token.str != op)
+        error("'%c'ではありません", op);
+
+    tokens.pop_front();
+}
+
+// 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
+// それ以外の場合にはエラーを報告する
+int expect_number(std::list<Token> &tokens) {
+    auto token = tokens.front();
+    if (token.kind != TokenKind::TK_NUM)
+        error("数ではありません");
+    int val = token.val;
+    tokens.pop_front();
+    return val;
 }
 
 /*
@@ -182,92 +157,92 @@ Node *new_node_num(int val) {
 
 */
 
-Node *expr();
-Node *equality();
-Node *relational();
-Node *add();
-Node *mul();
-Node *unary();
-Node *primary();
+Node *expr(std::list<Token> &tokens);
+Node *equality(std::list<Token> &tokens);
+Node *relational(std::list<Token> &tokens);
+Node *add(std::list<Token> &tokens);
+Node *mul(std::list<Token> &tokens);
+Node *unary(std::list<Token> &tokens);
+Node *primary(std::list<Token> &tokens);
 
-Node *expr() { return equality(); }
+Node *expr(std::list<Token> &tokens) { return equality(tokens); }
 
-Node *equality() {
-    Node *node = relational();
+Node *equality(std::list<Token> &tokens) {
+    Node *node = relational(tokens);
     for (;;) {
-        if (consume("=="))
-            node = new_node(ND_EQ, node, relational());
-        else if (consume("!="))
-            node = new_node(ND_NE, node, relational());
+        if (consume(tokens, "=="))
+            node = new_node(NodeKind::ND_EQ, node, relational(tokens));
+        else if (consume(tokens, "!="))
+            node = new_node(NodeKind::ND_NE, node, relational(tokens));
         else
             return node;
     }
 }
 
-Node *relational() {
-    Node *node = add();
+Node *relational(std::list<Token> &tokens) {
+    Node *node = add(tokens);
 
     for (;;) {
-        if (consume("<"))
-            node = new_node(ND_LT, node, add());
-        else if (consume("<="))
-            node = new_node(ND_LE, node, add());
-        else if (consume(">"))
-            node = new_node(ND_LT, add(), node);
-        else if (consume(">="))
-            node = new_node(ND_LE, add(), node);
+        if (consume(tokens, "<"))
+            node = new_node(NodeKind::ND_LT, node, add(tokens));
+        else if (consume(tokens, "<="))
+            node = new_node(NodeKind::ND_LE, node, add(tokens));
+        else if (consume(tokens, ">"))
+            node = new_node(NodeKind::ND_LT, add(tokens), node);
+        else if (consume(tokens, ">="))
+            node = new_node(NodeKind::ND_LE, add(tokens), node);
         else
             return node;
     }
 }
 
-Node *add() {
-    Node *node = mul();
+Node *add(std::list<Token> &tokens) {
+    Node *node = mul(tokens);
 
     for (;;) {
-        if (consume("+"))
-            node = new_node(ND_ADD, node, mul());
-        else if (consume("-"))
-            node = new_node(ND_SUB, node, mul());
+        if (consume(tokens, "+"))
+            node = new_node(NodeKind::ND_ADD, node, mul(tokens));
+        else if (consume(tokens, "-"))
+            node = new_node(NodeKind::ND_SUB, node, mul(tokens));
         else
             return node;
     }
 }
 
-Node *mul() {
-    Node *node = unary();
+Node *mul(std::list<Token> &tokens) {
+    Node *node = unary(tokens);
 
     for (;;) {
-        if (consume("*"))
-            node = new_node(ND_MUL, node, unary());
-        else if (consume("/"))
-            node = new_node(ND_DIV, node, unary());
+        if (consume(tokens, "*"))
+            node = new_node(NodeKind::ND_MUL, node, unary(tokens));
+        else if (consume(tokens, "/"))
+            node = new_node(NodeKind::ND_DIV, node, unary(tokens));
         else
             return node;
     }
 }
 
-Node *unary() {
-    if (consume("+"))
-        return unary();
-    if (consume("-"))
-        return new_node(ND_SUB, new_node_num(0), unary());
-    return primary();
+Node *unary(std::list<Token> &tokens) {
+    if (consume(tokens, "+"))
+        return unary(tokens);
+    if (consume(tokens, "-"))
+        return new_node(NodeKind::ND_SUB, new_node_num(0), unary(tokens));
+    return primary(tokens);
 }
 
-Node *primary() {
+Node *primary(std::list<Token> &tokens) {
     // 次のトークンが"("なら、"(" expr ")"のはず
-    if (consume("(")) {
-        Node *node = expr();
-        expect(")");
+    if (consume(tokens, "(")) {
+        Node *node = expr(tokens);
+        expect(tokens, ")");
         return node;
     }
     // そうでなければ数値のはず
-    return new_node_num(expect_number());
+    return new_node_num(expect_number(tokens));
 }
 
 void gen(Node *node) {
-    if (node->kind == ND_NUM) {
+    if (node->kind == NodeKind::ND_NUM) {
         printf("  push %d\n", node->val);
         return;
     }
@@ -279,35 +254,35 @@ void gen(Node *node) {
     printf("  pop rax\n");
 
     switch (node->kind) {
-    case ND_ADD:
+    case NodeKind::ND_ADD:
         printf("  add rax, rdi\n");
         break;
-    case ND_SUB:
+    case NodeKind::ND_SUB:
         printf("  sub rax, rdi\n");
         break;
-    case ND_MUL:
+    case NodeKind::ND_MUL:
         printf("  imul rax, rdi\n");
         break;
-    case ND_DIV:
+    case NodeKind::ND_DIV:
         printf("  cqo\n");
         printf("  idiv rdi\n");
         break;
-    case ND_EQ:
+    case NodeKind::ND_EQ:
         printf("  cmp rax, rdi\n");
         printf("  sete al\n");
         printf("  movzb rax, al\n");
         break;
-    case ND_NE:
+    case NodeKind::ND_NE:
         printf("  cmp rax, rdi\n");
         printf("  setne al\n");
         printf("  movzb rax, al\n");
         break;
-    case ND_LT:
+    case NodeKind::ND_LT:
         printf("  cmp rax, rdi\n");
         printf("  setl al\n");
         printf("  movzb rax, al\n");
         break;
-    case ND_LE:
+    case NodeKind::ND_LE:
         printf("  cmp rax, rdi\n");
         printf("  setle al\n");
         printf("  movzb rax, al\n");
@@ -319,16 +294,14 @@ void gen(Node *node) {
     printf("  push rax\n");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
     if (argc != 2) {
         error("引数の個数が正しくありません\n");
         return 1;
     }
 
-    // トークナイズしてパースする
-    user_input = argv[1];
-    token = tokenize(argv[1]);
-    Node *node = expr();
+    std::list<Token> tokens = tokenize(argv[1]);
+    Node *node = expr(tokens);
 
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
