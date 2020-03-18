@@ -6,8 +6,25 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
+    auto print_token = [](Token t) {
+        switch (t.kind) {
+        case TokenKind::TK_RESERVED:
+            std::cout << "RESERVED: " << t.str << std::endl;
+            break;
+        case TokenKind::TK_IDENT:
+            std::cout << "IDENT: " << t.str << std::endl;
+            break;
+        case TokenKind::TK_NUM:
+            std::cout << "NUM: " << t.val << std::endl;
+            break;
+        default:
+            break;
+        }
+    };
+
     std::list<Token> tokens = tokenize(argv[1]);
-    Node *node = expr(tokens);
-    codegen(node);
+    // std::for_each(tokens.begin(), tokens.end(), print_token);
+    std::list<Node *> code = program(tokens);
+    codegen(code);
     return 0;
 }

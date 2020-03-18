@@ -15,18 +15,31 @@ static Node *new_node_num(int val) {
     return node;
 }
 
+static Node *new_node_lvar(char name) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = NodeKind::ND_LVAR;
+    node->offset = (name - 'a' + 1) * 8;
+    return node;
+}
+
 /*
 
-   expr       = equality
+   program    = stmt*
+   stmt       = expr ";"
+   expr       = assign
+   assign     = equality ("=" assign)?
    equality   = relational ("==" relational | "!=" relational)*
    relational = add ("<" add | "<=" add | ">" add | ">=" add)*
    add        = mul ("+" mul | "-" mul)*
    mul        = unary ("+" unary | "/" unary)*
    unary      = ("+" | "-")? primary
-   primary    = num | "(" expr ")"
+   primary    = num | ident | "(" expr ")"
 
 */
 
+static Node *stmt(std::list<Token> &tokens);
+static Node *expr(std::list<Token> &tokens);
+static Node *assign(std::list<Token> &tokens);
 static Node *equality(std::list<Token> &tokens);
 static Node *relational(std::list<Token> &tokens);
 static Node *add(std::list<Token> &tokens);
@@ -34,7 +47,29 @@ static Node *mul(std::list<Token> &tokens);
 static Node *unary(std::list<Token> &tokens);
 static Node *primary(std::list<Token> &tokens);
 
-Node *expr(std::list<Token> &tokens) { return equality(tokens); }
+std::list<Node *> program(std::list<Token> &tokens) {
+    std::list<Node *> code;
+    // tokens.empty()使えばTK_EOFいらないのでは?
+    while (tokens.front().kind != TokenKind::TK_EOF) {
+        code.push_back(stmt(tokens));
+    }
+    return code;
+}
+
+static Node *stmt(std::list<Token> &tokens) {
+    Node *node = expr(tokens);
+    expect(tokens, ";");
+    return node;
+}
+
+static Node *expr(std::list<Token> &tokens) { return assign(tokens); }
+
+static Node *assign(std::list<Token> &tokens) {
+    Node *node = equality(tokens);
+    if (consume(tokens, "="))
+        node = new_node(NodeKind::ND_ASSIGN, node, assign(tokens));
+    return node;
+}
 
 static Node *equality(std::list<Token> &tokens) {
     Node *node = relational(tokens);
@@ -106,7 +141,11 @@ static Node *primary(std::list<Token> &tokens) {
         expect(tokens, ")");
         return node;
     }
+    auto t = consume_ident(tokens);
+    if (t) {
+        Node *node = new_node_lvar(t.value().str[0]);
+        return node;
+    }
     // そうでなければ数値のはず
     return new_node_num(expect_number(tokens));
 }
-

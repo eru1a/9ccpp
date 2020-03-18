@@ -17,10 +17,18 @@ bool consume(std::list<Token> &tokens, const std::string &op) {
     return true;
 }
 
+std::optional<Token> consume_ident(std::list<Token> &tokens) {
+    auto token = tokens.front();
+    if (token.kind != TokenKind::TK_IDENT)
+        return std::nullopt;
+    tokens.pop_front();
+    return token;
+}
+
 void expect(std::list<Token> &tokens, const std::string &op) {
     auto token = tokens.front();
     if (token.kind != TokenKind::TK_RESERVED || token.str != op)
-        error("'%c'ではありません", op);
+        error("'%s'ではありません", op.c_str());
 
     tokens.pop_front();
 }
@@ -59,8 +67,15 @@ std::list<Token> tokenize(const std::string &s) {
         // Single-letter punctuator
         if (startswith(s, i, "+") || startswith(s, i, "-") || startswith(s, i, "*") ||
             startswith(s, i, "/") || startswith(s, i, "(") || startswith(s, i, ")") ||
-            startswith(s, i, "<") || startswith(s, i, ">")) {
+            startswith(s, i, "<") || startswith(s, i, ">") || startswith(s, i, "=") ||
+            startswith(s, i, ",") || startswith(s, i, ";")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 1)});
+            i++;
+            continue;
+        }
+
+        if ('a' <= s[i] && s[i] <= 'z') {
+            tokens.push_back(Token{.kind = TokenKind::TK_IDENT, .str = s.substr(i, 1)});
             i++;
             continue;
         }
