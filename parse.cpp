@@ -1,5 +1,8 @@
 #include "9cc.h"
 
+// ローカル変数 (変数の名前, オフセット)
+static std::map<std::string, int> locals;
+
 static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
     node->kind = kind;
@@ -15,10 +18,15 @@ static Node *new_node_num(int val) {
     return node;
 }
 
-static Node *new_node_lvar(char name) {
+static Node *new_node_lvar(const std::string &name) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
     node->kind = NodeKind::ND_LVAR;
-    node->offset = (name - 'a' + 1) * 8;
+    if (locals.count(name) == 0) {
+        locals[name] = (locals.size() + 1) * 8;
+        node->offset = locals.at(name);
+    } else {
+        node->offset = locals.at(name);
+    }
     return node;
 }
 
@@ -47,13 +55,13 @@ static Node *mul(std::list<Token> &tokens);
 static Node *unary(std::list<Token> &tokens);
 static Node *primary(std::list<Token> &tokens);
 
-std::list<Node *> program(std::list<Token> &tokens) {
+Function program(std::list<Token> &tokens) {
     std::list<Node *> code;
     // tokens.empty()使えばTK_EOFいらないのでは?
     while (tokens.front().kind != TokenKind::TK_EOF) {
         code.push_back(stmt(tokens));
     }
-    return code;
+    return Function{.code = code, .stack_size = int(locals.size()) * 8};
 }
 
 static Node *stmt(std::list<Token> &tokens) {
@@ -143,7 +151,7 @@ static Node *primary(std::list<Token> &tokens) {
     }
     auto t = consume_ident(tokens);
     if (t) {
-        Node *node = new_node_lvar(t.value().str[0]);
+        Node *node = new_node_lvar(t.value().str);
         return node;
     }
     // そうでなければ数値のはず

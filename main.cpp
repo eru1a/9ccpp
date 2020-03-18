@@ -24,7 +24,7 @@ int main(int argc, const char *argv[]) {
 
     std::list<Token> tokens = tokenize(argv[1]);
     // std::for_each(tokens.begin(), tokens.end(), print_token);
-    std::list<Node *> code = program(tokens);
-    codegen(code);
+    auto prog = program(tokens);
+    codegen(prog);
     return 0;
 }

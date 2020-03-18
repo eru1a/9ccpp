@@ -7,10 +7,13 @@ OBJS=$(SRCS:.cpp=.o)
 
 $(OBJS): 9cc.h
 
+fmt:
+	find . -name "*.cpp" -o -name "*.h" | xargs clang-format -i
+
 test: 9cc
 	./test.sh
 
 clean:
 	rm -f 9cc *.o tmp*
 
-.PHONY: test clean
+.PHONY: test clean fmt

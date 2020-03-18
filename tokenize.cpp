@@ -42,11 +42,15 @@ int expect_number(std::list<Token> &tokens) {
     return val;
 }
 
-static bool startswith(const std::string &s, int i, const std::string &t) {
-    return s.substr(i, t.size()) == t;
-}
-
 std::list<Token> tokenize(const std::string &s) {
+    static auto startswith = [&](int i, const std::string &t) {
+        return s.substr(i, t.size()) == t;
+    };
+    static auto is_alpha = [](char c) {
+        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+    };
+    static auto is_alnum = [](char c) { return is_alpha(c) || ('0' <= c && c <= '9'); };
+
     std::list<Token> tokens;
     size_t i = 0;
     size_t len = s.size();
@@ -57,25 +61,18 @@ std::list<Token> tokenize(const std::string &s) {
         }
 
         // Multi-letter punctuator
-        if (startswith(s, i, "==") || startswith(s, i, "!=") || startswith(s, i, "<=") ||
-            startswith(s, i, ">=")) {
+        if (startswith(i, "==") || startswith(i, "!=") || startswith(i, "<=") ||
+            startswith(i, ">=")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 2)});
             i += 2;
             continue;
         }
 
         // Single-letter punctuator
-        if (startswith(s, i, "+") || startswith(s, i, "-") || startswith(s, i, "*") ||
-            startswith(s, i, "/") || startswith(s, i, "(") || startswith(s, i, ")") ||
-            startswith(s, i, "<") || startswith(s, i, ">") || startswith(s, i, "=") ||
-            startswith(s, i, ",") || startswith(s, i, ";")) {
+        if (startswith(i, "+") || startswith(i, "-") || startswith(i, "*") || startswith(i, "/") ||
+            startswith(i, "(") || startswith(i, ")") || startswith(i, "<") || startswith(i, ">") ||
+            startswith(i, "=") || startswith(i, ",") || startswith(i, ";")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 1)});
-            i++;
-            continue;
-        }
-
-        if ('a' <= s[i] && s[i] <= 'z') {
-            tokens.push_back(Token{.kind = TokenKind::TK_IDENT, .str = s.substr(i, 1)});
             i++;
             continue;
         }
@@ -88,6 +85,16 @@ std::list<Token> tokenize(const std::string &s) {
                 j++;
             }
             tokens.push_back(Token{.kind = TokenKind::TK_NUM, .val = n});
+            i = j;
+            continue;
+        }
+
+        if (is_alpha(s[i])) {
+            size_t j = i;
+            while (is_alnum(s[j])) {
+                j++;
+            }
+            tokens.push_back(Token{.kind = TokenKind::TK_IDENT, .str = s.substr(i, j - i)});
             i = j;
             continue;
         }

@@ -80,7 +80,7 @@ static void gen(Node *node) {
     printf("  push rax\n");
 }
 
-void codegen(std::list<Node*> code) {
+void codegen(const Function &prog) {
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
@@ -90,10 +90,10 @@ void codegen(std::list<Node*> code) {
     // 変数26個文の領域を確保する
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");
+    printf("  sub rsp, %d\n", prog.stack_size);
 
     // 先頭の式から順にコード生成
-    for (auto node : code) {
+    for (auto node : prog.code) {
         gen(node);
 
         // 式の評価結果としてスタックに1つの値が残っている

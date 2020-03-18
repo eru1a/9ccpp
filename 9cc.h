@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <list>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -68,6 +69,11 @@ struct Node {
     int offset;    // kindがND_LVARの場合のみ使う
 };
 
-std::list<Node *> program(std::list<Token> &tokens);
+struct Function {
+    std::list<Node *> code;
+    int stack_size;
+};
 
-void codegen(std::list<Node*> code);
+Function program(std::list<Token> &tokens);
+
+void codegen(const Function &prog);

@@ -47,7 +47,7 @@ try 1 '1>=0;'
 try 1 '1>=1;'
 try 0 '1>=2;'
 
-try 1 'a = 1;'
-try 14 'a = 3; b = 5 * 6 - 8; a + b / 2;'
+try 3 'foo = 3;'
+try 14 'foo123 = 3; bar = 5 * 6 - 8; foo123 + bar / 2;'
 
 echo OK
