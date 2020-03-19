@@ -37,11 +37,23 @@ static Node *new_node_unary(NodeKind kind, Node *expr) {
     return node;
 }
 
+static Node *new_node_if(Node *cond, Node *then, Node *els) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = NodeKind::ND_IF;
+    node->cond = cond;
+    node->then = then;
+    node->els = els;
+    return node;
+}
+
 /*
 
    program    = stmt*
    stmt       = expr ";"
               | "return" expr ";"
+              | "if" "(" expr ")" stmt ("else" stmt)?
+              | "while" "(" expr ")" stmt
+              | "for" "(" expr? ";" expr? ";" expr? ")" stmt
    expr       = assign
    assign     = equality ("=" assign)?
    equality   = relational ("==" relational | "!=" relational)*
@@ -77,6 +89,16 @@ static Node *stmt(std::list<Token> &tokens) {
         Node *node = new_node_unary(NodeKind::ND_RETURN, expr(tokens));
         expect(tokens, ";");
         return node;
+    }
+    if (consume_keyword(tokens, TokenKind::TK_IF)) {
+        expect(tokens, "(");
+        Node *cond = expr(tokens);
+        expect(tokens, ")");
+        Node *then = stmt(tokens);
+        Node *els = nullptr;
+        if (consume_keyword(tokens, TokenKind::TK_ELSE))
+            els = stmt(tokens);
+        return new_node_if(cond, then, els);
     }
     Node *node = expr(tokens);
     expect(tokens, ";");

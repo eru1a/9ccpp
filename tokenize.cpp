@@ -102,6 +102,30 @@ std::list<Token> tokenize(const std::string &s) {
             continue;
         }
 
+        if (startswith("if") && !is_alnum(s[i + 2])) {
+            tokens.push_back(Token{.kind = TokenKind::TK_IF, .str = "if"});
+            i += 2;
+            continue;
+        }
+
+        if (startswith("else") && !is_alnum(s[i + 4])) {
+            tokens.push_back(Token{.kind = TokenKind::TK_ELSE, .str = "else"});
+            i += 4;
+            continue;
+        }
+
+        if (startswith("while") && !is_alnum(s[i + 5])) {
+            tokens.push_back(Token{.kind = TokenKind::TK_WHILE, .str = "while"});
+            i += 5;
+            continue;
+        }
+
+        if (startswith("for") && !is_alnum(s[i + 3])) {
+            tokens.push_back(Token{.kind = TokenKind::TK_FOR, .str = "for"});
+            i += 3;
+            continue;
+        }
+
         if (is_alpha(s[i])) {
             size_t j = i;
             while (is_alnum(s[j])) {

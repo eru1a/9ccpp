@@ -1,5 +1,8 @@
 #include "9cc.h"
 
+static int cnt = 0;
+static std::string make_label(const std::string &s) { return ".L" + s + std::to_string(cnt++); }
+
 static void gen_lval(Node *node) {
     if (node->kind != NodeKind::ND_LVAR)
         error("代入の左辺値が変数ではありません");
@@ -35,6 +38,31 @@ static void gen(Node *node) {
         printf("  mov rsp, rbp\n");
         printf("  pop rbp\n");
         printf("  ret\n");
+        return;
+    case NodeKind::ND_IF:
+        if (!node->els) {
+            std::string end = make_label("end");
+
+            gen(node->cond);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  je %s\n", end.c_str());
+            gen(node->then);
+            printf("%s:\n", end.c_str());
+        } else {
+            std::string els = make_label("else");
+            std::string end = make_label("end");
+
+            gen(node->cond);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  je %s\n", els.c_str());
+            gen(node->then);
+            printf("  jmp %s\n", end.c_str());
+            printf("%s:\n", els.c_str());
+            gen(node->els);
+            printf("%s:\n", end.c_str());
+        }
         return;
     default:
         break;

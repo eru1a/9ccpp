@@ -17,6 +17,10 @@ enum class TokenKind {
     TK_IDENT,    // 識別子
     TK_NUM,      // 整数トークン
     TK_RETURN,   // return
+    TK_IF,       // if
+    TK_ELSE,     // else
+    TK_WHILE,    // while
+    TK_FOR,      // for
     TK_EOF,      // 入力の終わりを表すトークン
 };
 
@@ -35,6 +39,14 @@ struct Token {
             return "NUM: " + std::to_string(val);
         case TokenKind::TK_RETURN:
             return "RETURN";
+        case TokenKind::TK_IF:
+            return "IF";
+        case TokenKind::TK_ELSE:
+            return "ELSE";
+        case TokenKind::TK_WHILE:
+            return "WHILE";
+        case TokenKind::TK_FOR:
+            return "FOR";
         case TokenKind::TK_EOF:
             return "EOF";
         default:
@@ -77,7 +89,8 @@ enum class NodeKind {
     ND_LE,     // <=
     ND_ASSIGN, // =
     ND_LVAR,   // ローカル変数
-    ND_RETURN, // return
+    ND_RETURN, // "return"
+    ND_IF,     // "if"
     ND_NUM,    // 整数
 };
 
@@ -86,8 +99,14 @@ struct Node {
     NodeKind kind; // ノードの型
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
-    int val;       // kindがND_NUMの場合のみ使う
-    int offset;    // kindがND_LVARの場合のみ使う
+
+    // "if" statement
+    Node *cond;
+    Node *then;
+    Node *els;
+
+    int val;    // kindがND_NUMの場合のみ使う
+    int offset; // kindがND_LVARの場合のみ使う
 };
 
 struct Function {

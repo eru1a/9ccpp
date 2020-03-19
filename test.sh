@@ -55,4 +55,11 @@ try 2 '1; return 2; 3;'
 try 3 '1; 2; return 3;'
 try 15 'returnx = 3; return1 = 5; return returnx * return1;'
 
+try 3 'if (0) return 2; return 3;'
+try 3 'if (0) return 2; else return 3;'
+try 3 'if (1-1) return 2; else return 3;'
+try 2 'if (1) return 2; return 3;'
+try 2 'if (1) return 2; else return 3;'
+try 2 'if (2-1) return 2; else return 3;'
+
 echo OK
