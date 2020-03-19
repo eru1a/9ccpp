@@ -105,6 +105,10 @@ static void gen(Node *node) {
         }
         printf("  push rax\n");
         return;
+    case NodeKind::ND_FUNCALL:
+        printf("  call %s\n", node->funcname.c_str());
+        printf("  push rax\n");
+        return;
     default:
         break;
     }

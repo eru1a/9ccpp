@@ -79,22 +79,23 @@ std::list<Token> tokenize(const std::string &s);
 
 // 抽象構文木のノードの種類
 enum class NodeKind {
-    ND_ADD,    // +
-    ND_SUB,    // -
-    ND_MUL,    // *
-    ND_DIV,    // /
-    ND_EQ,     // ==
-    ND_NE,     // !=
-    ND_LT,     // <
-    ND_LE,     // <=
-    ND_ASSIGN, // =
-    ND_LVAR,   // ローカル変数
-    ND_RETURN, // "return"
-    ND_IF,     // "if"
-    ND_WHILE,  // "while"
-    ND_FOR,    // "for"
-    ND_BLOCK,  // "{ ... }"
-    ND_NUM,    // 整数
+    ND_ADD,     // +
+    ND_SUB,     // -
+    ND_MUL,     // *
+    ND_DIV,     // /
+    ND_EQ,      // ==
+    ND_NE,      // !=
+    ND_LT,      // <
+    ND_LE,      // <=
+    ND_ASSIGN,  // =
+    ND_LVAR,    // ローカル変数
+    ND_RETURN,  // "return"
+    ND_IF,      // "if"
+    ND_WHILE,   // "while"
+    ND_FOR,     // "for"
+    ND_BLOCK,   // "{ ... }"
+    ND_FUNCALL, // Function call
+    ND_NUM,     // 整数
 };
 
 // 抽象構文木のノードの型
@@ -111,7 +112,10 @@ struct Node {
     Node *inc;
 
     // Block
-    std::list<Node *> *body;
+    std::vector<Node *> *body;
+
+    // Function call
+    std::string funcname;
 
     int val;    // kindがND_NUMの場合のみ使う
     int offset; // kindがND_LVARの場合のみ使う

@@ -64,10 +64,17 @@ static Node *new_node_for(Node *init, Node *cond, Node *inc, Node *then) {
     return node;
 }
 
-static Node *new_node_block(std::list<Node *> *body) {
+static Node *new_node_block(std::vector<Node *> *body) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
     node->kind = NodeKind::ND_BLOCK;
     node->body = body;
+    return node;
+}
+
+static Node *new_node_funcall(const std::string &funcname) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = NodeKind::ND_FUNCALL;
+    node->funcname = funcname;
     return node;
 }
 
@@ -87,7 +94,9 @@ static Node *new_node_block(std::list<Node *> *body) {
    add        = mul ("+" mul | "-" mul)*
    mul        = unary ("+" unary | "/" unary)*
    unary      = ("+" | "-")? primary
-   primary    = num | ident | "(" expr ")"
+   primary    = num
+              | ident ("(" ")")?
+              | "(" expr ")"
 
 */
 
@@ -154,7 +163,7 @@ static Node *stmt(std::list<Token> &tokens) {
         return new_node_for(init, cond, inc, then);
     }
     if (consume(tokens, "{")) {
-        std::list<Node *> *body = new std::list<Node *>();
+        std::vector<Node *> *body = new std::vector<Node *>();
         while (!consume(tokens, "}")) {
             body->push_back(stmt(tokens));
         }
@@ -245,10 +254,15 @@ static Node *primary(std::list<Token> &tokens) {
         expect(tokens, ")");
         return node;
     }
+    // ident
     auto t = consume_ident(tokens);
     if (t) {
-        Node *node = new_node_lvar(t.value().str);
-        return node;
+        // 関数呼び出し
+        if (consume(tokens, "(")) {
+            expect(tokens, ")");
+            return new_node_funcall(t.value().str);
+        }
+        return new_node_lvar(t.value().str);
     }
     // そうでなければ数値のはず
     return new_node_num(expect_number(tokens));
