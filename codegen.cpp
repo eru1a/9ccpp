@@ -105,15 +105,34 @@ static void gen(Node *node) {
         }
         printf("  push rax\n");
         return;
-    case NodeKind::ND_FUNCALL:
+    case NodeKind::ND_FUNCALL: {
         for (auto arg : *(node->args))
             gen(arg);
         for (int i = int(node->args->size()) - 1; i >= 0; i--)
             printf("  pop %s\n", argreg[i].c_str());
 
+        // 関数を呼び出す前にrspが16の倍数になるように調整する
+        // chibicc
+        // We need to align RSP to a 16 byte boundary before
+        // calling a function because it is an ABI requirement.
+        // RAX is set to 0 for variadic function.
+        std::string call = make_label("call");
+        std::string end = make_label("end");
+        printf("  mov rax, rsp\n");
+        printf("  and rax, 15\n");
+        printf("  jnz %s\n", call.c_str());
+        printf("  mov rax, 0\n");
         printf("  call %s\n", node->funcname.c_str());
+        printf("  jmp %s\n", end.c_str());
+        printf("%s:\n", call.c_str());
+        printf("  sub rsp, 8\n");
+        printf("  mov rax, 0\n");
+        printf("  call %s\n", node->funcname.c_str());
+        printf("  add rsp, 8\n");
+        printf("%s:\n", end.c_str());
         printf("  push rax\n");
         return;
+    }
     default:
         break;
     }
