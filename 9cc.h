@@ -93,6 +93,7 @@ enum class NodeKind {
     ND_IF,     // "if"
     ND_WHILE,  // "while"
     ND_FOR,    // "for"
+    ND_BLOCK,  // "{ ... }"
     ND_NUM,    // 整数
 };
 
@@ -108,6 +109,9 @@ struct Node {
     Node *els;
     Node *init;
     Node *inc;
+
+    // Block
+    std::list<Node *> *body;
 
     int val;    // kindがND_NUMの場合のみ使う
     int offset; // kindがND_LVARの場合のみ使う

@@ -98,6 +98,13 @@ static void gen(Node *node) {
         printf("%s:\n", end.c_str());
         return;
     }
+    case NodeKind::ND_BLOCK:
+        for (auto stmt : *(node->body)) {
+            gen(stmt);
+            printf("  pop rax\n");
+        }
+        printf("  push rax\n");
+        return;
     default:
         break;
     }

@@ -78,7 +78,8 @@ std::list<Token> tokenize(const std::string &s) {
         // Single-letter punctuator
         if (startswith("+") || startswith("-") || startswith("*") || startswith("/") ||
             startswith("(") || startswith(")") || startswith("<") || startswith(">") ||
-            startswith("=") || startswith(",") || startswith(";")) {
+            startswith("=") || startswith(",") || startswith(";") || startswith("{") ||
+            startswith("}")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 1)});
             i++;
             continue;
