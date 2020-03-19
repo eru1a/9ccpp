@@ -117,6 +117,9 @@ struct Node {
     // Function call
     std::string funcname;
 
+    // funcallの場合の引数
+    std::vector<Node *> *args;
+
     int val;    // kindがND_NUMの場合のみ使う
     int offset; // kindがND_LVARの場合のみ使う
 };
@@ -129,3 +132,6 @@ struct Function {
 Function program(std::list<Token> &tokens);
 
 void codegen(const Function &prog);
+
+// 引数に使うレジスタ
+const std::vector<std::string> argreg = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};

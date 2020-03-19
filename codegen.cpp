@@ -106,6 +106,11 @@ static void gen(Node *node) {
         printf("  push rax\n");
         return;
     case NodeKind::ND_FUNCALL:
+        for (auto arg : *(node->args))
+            gen(arg);
+        for (int i = int(node->args->size()) - 1; i >= 0; i--)
+            printf("  pop %s\n", argreg[i].c_str());
+
         printf("  call %s\n", node->funcname.c_str());
         printf("  push rax\n");
         return;

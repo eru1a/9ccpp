@@ -71,10 +71,11 @@ static Node *new_node_block(std::vector<Node *> *body) {
     return node;
 }
 
-static Node *new_node_funcall(const std::string &funcname) {
+static Node *new_node_funcall(const std::string &funcname, std::vector<Node *> *args) {
     Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
     node->kind = NodeKind::ND_FUNCALL;
     node->funcname = funcname;
+    node->args = args;
     return node;
 }
 
@@ -95,7 +96,7 @@ static Node *new_node_funcall(const std::string &funcname) {
    mul        = unary ("+" unary | "/" unary)*
    unary      = ("+" | "-")? primary
    primary    = num
-              | ident ("(" ")")?
+              | ident ("(" (assign ("," assign)*)? ")")?
               | "(" expr ")"
 
 */
@@ -247,6 +248,20 @@ static Node *unary(std::list<Token> &tokens) {
     return primary(tokens);
 }
 
+static std::vector<Node *> *func_args(std::list<Token> &tokens) {
+    std::vector<Node *> *args = new std::vector<Node *>();
+    if (consume(tokens, ")"))
+        return args;
+
+    args->push_back(expr(tokens));
+    while (consume(tokens, ",")) {
+        args->push_back(expr(tokens));
+    }
+
+    expect(tokens, ")");
+    return args;
+}
+
 static Node *primary(std::list<Token> &tokens) {
     // 次のトークンが"("なら、"(" expr ")"のはず
     if (consume(tokens, "(")) {
@@ -259,8 +274,8 @@ static Node *primary(std::list<Token> &tokens) {
     if (t) {
         // 関数呼び出し
         if (consume(tokens, "(")) {
-            expect(tokens, ")");
-            return new_node_funcall(t.value().str);
+            std::vector<Node *> *args = func_args(tokens);
+            return new_node_funcall(t.value().str, args);
         }
         return new_node_lvar(t.value().str);
     }
