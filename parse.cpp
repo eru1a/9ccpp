@@ -54,14 +54,24 @@ static Node *new_node_while(Node *cond, Node *then) {
     return node;
 }
 
+static Node *new_node_for(Node *init, Node *cond, Node *inc, Node *then) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = NodeKind::ND_FOR;
+    node->init = init;
+    node->cond = cond;
+    node->inc = inc;
+    node->then = then;
+    return node;
+}
+
 /*
 
    program    = stmt*
-   stmt       = expr ";"
-              | "return" expr ";"
+   stmt       = "return" expr ";"
               | "if" "(" expr ")" stmt ("else" stmt)?
               | "while" "(" expr ")" stmt
               | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+              | expr ";"
    expr       = assign
    assign     = equality ("=" assign)?
    equality   = relational ("==" relational | "!=" relational)*
@@ -114,6 +124,26 @@ static Node *stmt(std::list<Token> &tokens) {
         expect(tokens, ")");
         Node *then = stmt(tokens);
         return new_node_while(cond, then);
+    }
+    if (consume_keyword(tokens, TokenKind::TK_FOR)) {
+        Node *init = nullptr;
+        Node *cond = nullptr;
+        Node *inc = nullptr;
+        expect(tokens, "(");
+        if (!consume(tokens, ";")) {
+            init = expr(tokens);
+            expect(tokens, ";");
+        }
+        if (!consume(tokens, ";")) {
+            cond = expr(tokens);
+            expect(tokens, ";");
+        }
+        if (!consume(tokens, ")")) {
+            inc = expr(tokens);
+            expect(tokens, ")");
+        }
+        Node *then = stmt(tokens);
+        return new_node_for(init, cond, inc, then);
     }
 
     Node *node = expr(tokens);

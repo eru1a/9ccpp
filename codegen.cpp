@@ -13,6 +13,8 @@ static void gen_lval(Node *node) {
 }
 
 static void gen(Node *node) {
+    if (!node)
+        return;
     switch (node->kind) {
     case NodeKind::ND_NUM:
         printf("  push %d\n", node->val);
@@ -74,6 +76,24 @@ static void gen(Node *node) {
         printf("  cmp rax, 0\n");
         printf("  je %s\n", end.c_str());
         gen(node->then);
+        printf("  jmp %s\n", begin.c_str());
+        printf("%s:\n", end.c_str());
+        return;
+    }
+    case NodeKind::ND_FOR: {
+        std::string begin = make_label("begin");
+        std::string end = make_label("end");
+
+        gen(node->init);
+        printf("%s:\n", begin.c_str());
+        if (node->cond) {
+            gen(node->cond);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  je %s\n", end.c_str());
+        }
+        gen(node->then);
+        gen(node->inc);
         printf("  jmp %s\n", begin.c_str());
         printf("%s:\n", end.c_str());
         return;
