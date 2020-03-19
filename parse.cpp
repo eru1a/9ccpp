@@ -30,10 +30,18 @@ static Node *new_node_lvar(const std::string &name) {
     return node;
 }
 
+static Node *new_node_unary(NodeKind kind, Node *expr) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = kind;
+    node->lhs = expr;
+    return node;
+}
+
 /*
 
    program    = stmt*
    stmt       = expr ";"
+              | "return" expr ";"
    expr       = assign
    assign     = equality ("=" assign)?
    equality   = relational ("==" relational | "!=" relational)*
@@ -65,6 +73,11 @@ Function program(std::list<Token> &tokens) {
 }
 
 static Node *stmt(std::list<Token> &tokens) {
+    if (consume_keyword(tokens, TokenKind::TK_RETURN)) {
+        Node *node = new_node_unary(NodeKind::ND_RETURN, expr(tokens));
+        expect(tokens, ";");
+        return node;
+    }
     Node *node = expr(tokens);
     expect(tokens, ";");
     return node;

@@ -16,6 +16,7 @@ enum class TokenKind {
     TK_RESERVED, // 記号
     TK_IDENT,    // 識別子
     TK_NUM,      // 整数トークン
+    TK_RETURN,   // return
     TK_EOF,      // 入力の終わりを表すトークン
 };
 
@@ -23,6 +24,23 @@ struct Token {
     TokenKind kind;  // トークンの型
     int val;         // kindがTK_NUMの場合、その数値
     std::string str; // トークン文字列
+
+    std::string to_string() const {
+        switch (kind) {
+        case TokenKind::TK_RESERVED:
+            return "RESERVED: " + str;
+        case TokenKind::TK_IDENT:
+            return "IDENT: " + str;
+        case TokenKind::TK_NUM:
+            return "NUM: " + std::to_string(val);
+        case TokenKind::TK_RETURN:
+            return "RETURN";
+        case TokenKind::TK_EOF:
+            return "EOF";
+        default:
+            return "UNKNOWN";
+        }
+    }
 };
 
 // エラーを報告するための関数
@@ -34,6 +52,8 @@ void error(const char *fmt, ...);
 bool consume(std::list<Token> &tokens, const std::string &op);
 
 std::optional<Token> consume_ident(std::list<Token> &tokens);
+
+bool consume_keyword(std::list<Token> &tokens, TokenKind kind);
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
@@ -57,6 +77,7 @@ enum class NodeKind {
     ND_LE,     // <=
     ND_ASSIGN, // =
     ND_LVAR,   // ローカル変数
+    ND_RETURN, // return
     ND_NUM,    // 整数
 };
 

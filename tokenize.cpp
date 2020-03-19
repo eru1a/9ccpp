@@ -25,6 +25,15 @@ std::optional<Token> consume_ident(std::list<Token> &tokens) {
     return token;
 }
 
+bool consume_keyword(std::list<Token> &tokens, TokenKind kind) {
+    auto token = tokens.front();
+    if (token.kind != kind) {
+        return false;
+    }
+    tokens.pop_front();
+    return true;
+}
+
 void expect(std::list<Token> &tokens, const std::string &op) {
     auto token = tokens.front();
     if (token.kind != TokenKind::TK_RESERVED || token.str != op)
@@ -36,24 +45,23 @@ void expect(std::list<Token> &tokens, const std::string &op) {
 int expect_number(std::list<Token> &tokens) {
     auto token = tokens.front();
     if (token.kind != TokenKind::TK_NUM)
-        error("数ではありません");
+        error("数ではありません: %s\n", token.to_string().c_str());
     int val = token.val;
     tokens.pop_front();
     return val;
 }
 
 std::list<Token> tokenize(const std::string &s) {
-    static auto startswith = [&](int i, const std::string &t) {
-        return s.substr(i, t.size()) == t;
-    };
+    std::list<Token> tokens;
+    size_t i = 0;
+    size_t len = s.size();
+
+    static auto startswith = [&](const std::string &t) { return s.substr(i, t.size()) == t; };
     static auto is_alpha = [](char c) {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
     };
     static auto is_alnum = [](char c) { return is_alpha(c) || ('0' <= c && c <= '9'); };
 
-    std::list<Token> tokens;
-    size_t i = 0;
-    size_t len = s.size();
     while (i < len) {
         if (isspace(s[i])) {
             i++;
@@ -61,17 +69,16 @@ std::list<Token> tokenize(const std::string &s) {
         }
 
         // Multi-letter punctuator
-        if (startswith(i, "==") || startswith(i, "!=") || startswith(i, "<=") ||
-            startswith(i, ">=")) {
+        if (startswith("==") || startswith("!=") || startswith("<=") || startswith(">=")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 2)});
             i += 2;
             continue;
         }
 
         // Single-letter punctuator
-        if (startswith(i, "+") || startswith(i, "-") || startswith(i, "*") || startswith(i, "/") ||
-            startswith(i, "(") || startswith(i, ")") || startswith(i, "<") || startswith(i, ">") ||
-            startswith(i, "=") || startswith(i, ",") || startswith(i, ";")) {
+        if (startswith("+") || startswith("-") || startswith("*") || startswith("/") ||
+            startswith("(") || startswith(")") || startswith("<") || startswith(">") ||
+            startswith("=") || startswith(",") || startswith(";")) {
             tokens.push_back(Token{.kind = TokenKind::TK_RESERVED, .str = s.substr(i, 1)});
             i++;
             continue;
@@ -86,6 +93,12 @@ std::list<Token> tokenize(const std::string &s) {
             }
             tokens.push_back(Token{.kind = TokenKind::TK_NUM, .val = n});
             i = j;
+            continue;
+        }
+
+        if (startswith("return") && !is_alnum(s[i + 6])) {
+            tokens.push_back(Token{.kind = TokenKind::TK_RETURN, .str = "return"});
+            i += 6;
             continue;
         }
 

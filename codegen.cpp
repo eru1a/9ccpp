@@ -29,6 +29,13 @@ static void gen(Node *node) {
         printf("  mov [rax], rdi\n");
         printf("  push rdi\n");
         return;
+    case NodeKind::ND_RETURN:
+        gen(node->lhs);
+        printf("  pop rax\n");
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n");
+        printf("  ret\n");
+        return;
     default:
         break;
     }
@@ -102,8 +109,5 @@ void codegen(const Function &prog) {
     }
 
     // エピローグ
-    // 最後の式の結果がRAXに残っているのでそれが返り値になる
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
     printf("  ret\n");
 }
