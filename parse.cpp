@@ -46,6 +46,14 @@ static Node *new_node_if(Node *cond, Node *then, Node *els) {
     return node;
 }
 
+static Node *new_node_while(Node *cond, Node *then) {
+    Node *node = static_cast<Node *>(calloc(1, sizeof(Node)));
+    node->kind = NodeKind::ND_WHILE;
+    node->cond = cond;
+    node->then = then;
+    return node;
+}
+
 /*
 
    program    = stmt*
@@ -100,6 +108,14 @@ static Node *stmt(std::list<Token> &tokens) {
             els = stmt(tokens);
         return new_node_if(cond, then, els);
     }
+    if (consume_keyword(tokens, TokenKind::TK_WHILE)) {
+        expect(tokens, "(");
+        Node *cond = expr(tokens);
+        expect(tokens, ")");
+        Node *then = stmt(tokens);
+        return new_node_while(cond, then);
+    }
+
     Node *node = expr(tokens);
     expect(tokens, ";");
     return node;

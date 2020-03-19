@@ -1,7 +1,7 @@
 #include "9cc.h"
 
 static int cnt = 0;
-static std::string make_label(const std::string &s) { return ".L" + s + std::to_string(cnt++); }
+static std::string make_label(const std::string &s) { return ".L." + s + std::to_string(cnt++); }
 
 static void gen_lval(Node *node) {
     if (node->kind != NodeKind::ND_LVAR)
@@ -64,6 +64,20 @@ static void gen(Node *node) {
             printf("%s:\n", end.c_str());
         }
         return;
+    case NodeKind::ND_WHILE: {
+        std::string begin = make_label("begin");
+        std::string end = make_label("end");
+
+        printf("%s:\n", begin.c_str());
+        gen(node->cond);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je %s\n", end.c_str());
+        gen(node->then);
+        printf("  jmp %s\n", begin.c_str());
+        printf("%s:\n", end.c_str());
+        return;
+    }
     default:
         break;
     }

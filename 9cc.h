@@ -91,6 +91,8 @@ enum class NodeKind {
     ND_LVAR,   // ローカル変数
     ND_RETURN, // "return"
     ND_IF,     // "if"
+    ND_WHILE,  // "while"
+    ND_FOR,    // "for"
     ND_NUM,    // 整数
 };
 
@@ -100,7 +102,7 @@ struct Node {
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
 
-    // "if" statement
+    // "if" or "while" statement
     Node *cond;
     Node *then;
     Node *els;
