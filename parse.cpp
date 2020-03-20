@@ -81,7 +81,8 @@ static Node *new_node_funcall(const std::string &funcname, std::vector<Node *> *
 
 /*
 
-   program    = stmt*
+   program    = function*
+   function   = ident "(" ")" "{" stmt* "}"
    stmt       = "return" expr ";"
               | "if" "(" expr ")" stmt ("else" stmt)?
               | "while" "(" expr ")" stmt
@@ -101,6 +102,7 @@ static Node *new_node_funcall(const std::string &funcname, std::vector<Node *> *
 
 */
 
+static Function function(std::list<Token> &tokens);
 static Node *stmt(std::list<Token> &tokens);
 static Node *expr(std::list<Token> &tokens);
 static Node *assign(std::list<Token> &tokens);
@@ -111,13 +113,29 @@ static Node *mul(std::list<Token> &tokens);
 static Node *unary(std::list<Token> &tokens);
 static Node *primary(std::list<Token> &tokens);
 
-Function program(std::list<Token> &tokens) {
-    std::list<Node *> code;
+std::vector<Function> program(std::list<Token> &tokens) {
+    std::vector<Function> prog;
     // tokens.empty()使えばTK_EOFいらないのでは?
     while (tokens.front().kind != TokenKind::TK_EOF) {
+        prog.push_back(function(tokens));
+    }
+    return prog;
+}
+
+static Function function(std::list<Token> &tokens) {
+    locals.clear();
+
+    std::string name = expect_ident(tokens);
+    expect(tokens, "(");
+    expect(tokens, ")");
+    expect(tokens, "{");
+
+    std::vector<Node *> code;
+    while (!consume(tokens, "}")) {
         code.push_back(stmt(tokens));
     }
-    return Function{.code = code, .stack_size = int(locals.size()) * 8};
+
+    return Function{.code = code, .name = name, .stack_size = int(locals.size()) * 8};
 }
 
 static Node *stmt(std::list<Token> &tokens) {

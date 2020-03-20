@@ -2,6 +2,7 @@
 
 static int cnt = 0;
 static std::string make_label(const std::string &s) { return ".L." + s + std::to_string(cnt++); }
+static std::string funcname;
 
 static void gen_lval(Node *node) {
     if (node->kind != NodeKind::ND_LVAR)
@@ -37,9 +38,7 @@ static void gen(Node *node) {
     case NodeKind::ND_RETURN:
         gen(node->lhs);
         printf("  pop rax\n");
-        printf("  mov rsp, rbp\n");
-        printf("  pop rbp\n");
-        printf("  ret\n");
+        printf("  jmp .L.return.%s\n", funcname.c_str());
         return;
     case NodeKind::ND_IF:
         if (!node->els) {
@@ -184,27 +183,28 @@ static void gen(Node *node) {
     printf("  push rax\n");
 }
 
-void codegen(const Function &prog) {
+void codegen(const std::vector<Function> &prog) {
     // アセンブリの前半部分を出力
     printf(".intel_syntax noprefix\n");
-    printf(".global main\n");
-    printf("main:\n");
 
-    // プロローグ
-    // 変数26個文の領域を確保する
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", prog.stack_size);
+    for (auto fn : prog) {
+        printf(".global %s\n", fn.name.c_str());
+        printf("%s:\n", fn.name.c_str());
+        funcname = fn.name;
 
-    // 先頭の式から順にコード生成
-    for (auto node : prog.code) {
-        gen(node);
+        // プロローグ
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        printf("  sub rsp, %d\n", fn.stack_size);
 
-        // 式の評価結果としてスタックに1つの値が残っている
-        // はずなので、スタックが溢れないようにポップしておく
-        printf("  pop rax\n");
+        for (auto node : fn.code) {
+            gen(node);
+        }
+
+        // エピローグ
+        printf(".L.return.%s:\n", funcname.c_str());
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n");
+        printf("  ret\n");
     }
-
-    // エピローグ
-    printf("  ret\n");
 }

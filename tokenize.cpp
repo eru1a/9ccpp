@@ -51,6 +51,15 @@ int expect_number(std::list<Token> &tokens) {
     return val;
 }
 
+std::string expect_ident(std::list<Token> &tokens) {
+    auto token = tokens.front();
+    if (token.kind != TokenKind::TK_IDENT)
+        error("識別子ではありません: %s\n", token.to_string().c_str());
+    std::string s = token.str;
+    tokens.pop_front();
+    return s;
+}
+
 std::list<Token> tokenize(const std::string &s) {
     std::list<Token> tokens;
     size_t i = 0;

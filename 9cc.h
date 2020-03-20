@@ -75,6 +75,9 @@ void expect(std::list<Token> &tokens, const std::string &op);
 // それ以外の場合にはエラーを報告する
 int expect_number(std::list<Token> &tokens);
 
+// expect_numberのident版
+std::string expect_ident(std::list<Token> &tokens);
+
 std::list<Token> tokenize(const std::string &s);
 
 // 抽象構文木のノードの種類
@@ -125,13 +128,14 @@ struct Node {
 };
 
 struct Function {
-    std::list<Node *> code;
+    std::vector<Node *> code;
+    std::string name;
     int stack_size;
 };
 
-Function program(std::list<Token> &tokens);
+std::vector<Function> program(std::list<Token> &tokens);
 
-void codegen(const Function &prog);
+void codegen(const std::vector<Function> &prog);
 
 // 引数に使うレジスタ
 const std::vector<std::string> argreg = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
