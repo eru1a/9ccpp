@@ -1,6 +1,7 @@
 #include "9cc.h"
 
 // ローカル変数 (変数の名前, オフセット)
+// paramsもここに含まれる
 static std::map<std::string, int> locals;
 
 static Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -82,7 +83,8 @@ static Node *new_node_funcall(const std::string &funcname, std::vector<Node *> *
 /*
 
    program    = function*
-   function   = ident "(" ")" "{" stmt* "}"
+   function   = ident "(" params? ")" "{" stmt* "}"
+   params     = ident ("," ident)*
    stmt       = "return" expr ";"
               | "if" "(" expr ")" stmt ("else" stmt)?
               | "while" "(" expr ")" stmt
@@ -103,6 +105,7 @@ static Node *new_node_funcall(const std::string &funcname, std::vector<Node *> *
 */
 
 static Function function(std::list<Token> &tokens);
+static std::vector<Node *> read_func_params(std::list<Token> &tokens);
 static Node *stmt(std::list<Token> &tokens);
 static Node *expr(std::list<Token> &tokens);
 static Node *assign(std::list<Token> &tokens);
@@ -122,12 +125,26 @@ std::vector<Function> program(std::list<Token> &tokens) {
     return prog;
 }
 
+static std::vector<Node *> read_func_params(std::list<Token> &tokens) {
+    if (consume(tokens, ")"))
+        return {};
+
+    std::vector<Node *> params;
+    params.push_back(new_node_lvar(expect_ident(tokens)));
+
+    while (!consume(tokens, ")")) {
+        expect(tokens, ",");
+        params.push_back(new_node_lvar(expect_ident(tokens)));
+    }
+    return params;
+}
+
 static Function function(std::list<Token> &tokens) {
     locals.clear();
 
     std::string name = expect_ident(tokens);
     expect(tokens, "(");
-    expect(tokens, ")");
+    std::vector<Node *> params = read_func_params(tokens);
     expect(tokens, "{");
 
     std::vector<Node *> code;
@@ -135,7 +152,8 @@ static Function function(std::list<Token> &tokens) {
         code.push_back(stmt(tokens));
     }
 
-    return Function{.code = code, .name = name, .stack_size = int(locals.size()) * 8};
+    return Function{
+        .code = code, .name = name, .params = params, .stack_size = int(locals.size()) * 8};
 }
 
 static Node *stmt(std::list<Token> &tokens) {

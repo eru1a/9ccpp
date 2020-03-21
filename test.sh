@@ -90,4 +90,11 @@ try 21 'main() { return add6(1,2,3,4,5,6); }'
 
 try 32 'main() { return ret32(); } ret32() { return 32; }'
 
+try 7 'main() { return add2(3, 4); } add2(x, y) { return x + y; }'
+try 1 'main() { return sub2(4, 3); } sub2(x, y) { return x - y; }'
+try 2 'main() { return sub2(5, 10); } sub2(x, y) { a = 4; b = 11; return x - a + b - y; }'
+try 9 'main() { return sub6(1,2,3,4,5,6); } sub6(a,b,c,d,e,f) { return f-a+e-b+d-c; }'
+try 55 'main() { return fib(9); } fib(x) { if (x <= 1) return 1; return fib(x - 1) + fib(x - 2); }'
+try 120 'main() { return fact(5); } fact(x) { if (x > 1) return x * fact(x - 1); else return 1; }'
+
 echo OK

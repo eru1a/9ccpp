@@ -197,6 +197,10 @@ void codegen(const std::vector<Function> &prog) {
         printf("  mov rbp, rsp\n");
         printf("  sub rsp, %d\n", fn.stack_size);
 
+        for (size_t i = 0; i < fn.params.size(); i++) {
+            printf("  mov [rbp-%d], %s\n", fn.params[i]->offset, argreg[i].c_str());
+        }
+
         for (auto node : fn.code) {
             gen(node);
         }

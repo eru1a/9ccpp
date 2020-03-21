@@ -130,6 +130,7 @@ struct Node {
 struct Function {
     std::vector<Node *> code;
     std::string name;
+    std::vector<Node *> params;
     int stack_size;
 };
 
